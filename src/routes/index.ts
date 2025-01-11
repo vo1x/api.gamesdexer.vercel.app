@@ -1,5 +1,5 @@
 import { Router } from "express";
-import searchController from "../controllers/steamRIP";
+import searchController from "../controllers/searchController";
 
 const router = Router();
 
