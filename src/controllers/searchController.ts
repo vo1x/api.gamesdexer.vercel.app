@@ -76,7 +76,7 @@ const searchController = {
             name,
             version,
             repack: config.name,
-            url,
+            url: `${config.url}/${url}`,
             source: new URL(config.url).hostname,
           });
         }
