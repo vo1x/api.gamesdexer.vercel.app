@@ -39,6 +39,15 @@ const SCRAPERS: Record<string, ScraperConfig> = {
       version: ".entry-content",
     },
   },
+  dodi: {
+    name: "DODI",
+    url: "https://game-repack.site",
+    selectors: {
+      container: ".entry-title",
+      title: "a",
+      version: ".entry-content",
+    },
+  },
 };
 
 const searchController = {
@@ -76,8 +85,11 @@ const searchController = {
             name,
             version,
             repack: config.name,
-            url: `${config.url}/${url}`,
-            source: new URL(config.url).hostname,
+            url:
+              config.name.toLowerCase() === "steamrip"
+                ? `${config.url}/${url}`
+                : url,
+            source: new URL(config.url).toString(),
           });
         }
       });
