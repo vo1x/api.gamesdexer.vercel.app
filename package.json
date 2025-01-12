@@ -5,7 +5,7 @@
     "express": "^4.21.2"
   },
   "scripts": {
-    "dev": "bun --watch src/server.ts",
+    "dev": "bun --watch src/app.ts",
     "build": "bun run tsc",
     "start": "node dist/server.js"
   },
