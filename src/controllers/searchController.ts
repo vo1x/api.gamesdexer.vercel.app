@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 
 interface ISearchResult {
   name: string;
-  version: string;
+  date: string | undefined;
   repack: string;
   url?: string;
   source: string;
@@ -15,7 +15,7 @@ interface ScraperConfig {
   selectors: {
     container: string;
     title: string;
-    version: string;
+    date?: string;
   };
 }
 
@@ -27,7 +27,6 @@ const SCRAPERS: Record<string, ScraperConfig> = {
     selectors: {
       container: ".post-element",
       title: ".the-post-title",
-      version: ".tagmetafield",
     },
   },
   fitgirl: {
@@ -36,7 +35,7 @@ const SCRAPERS: Record<string, ScraperConfig> = {
     selectors: {
       container: ".entry-title",
       title: "a",
-      version: ".entry-content",
+      date: ".entry-meta .entry-date time",
     },
   },
   dodi: {
@@ -45,7 +44,7 @@ const SCRAPERS: Record<string, ScraperConfig> = {
     selectors: {
       container: ".entry-title",
       title: "a",
-      version: ".entry-content",
+      date: "time.entry-date.published",
     },
   },
   xatab: {
@@ -54,12 +53,39 @@ const SCRAPERS: Record<string, ScraperConfig> = {
     selectors: {
       container: ".entry__title",
       title: "a",
-      version: ".entry-content",
+      date: ".entry__info-categories",
     },
   },
 };
 
 const searchController = {
+  formatDate(dateStr: string): string {
+    try {
+      const xatabFormat = /^\d{2}-\d{2}-\d{4}, \d{2}:\d{2}$/;
+
+      if (xatabFormat.test(dateStr)) {
+        const [datePart] = dateStr.split(", ");
+        const [day, month, year] = datePart.split("-");
+        dateStr = `${year}-${month}-${day}`;
+      }
+
+      const date = new Date(dateStr);
+
+      if (isNaN(date.getTime())) {
+        return dateStr;
+      }
+
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateStr;
+    }
+  },
+
   async scrapeWebsite(
     searchTerm: string,
     config: ScraperConfig
@@ -91,13 +117,33 @@ const searchController = {
 
       $(config.selectors.container).each((_, element) => {
         const name = $(element).find(config.selectors.title).text().trim();
-        const version = $(element).find(config.selectors.version).text().trim();
         const url = $(element).find("a").attr("href");
 
+        let date;
+        if (config.selectors.date) {
+          let rawDate;
+
+          if (config.name === "xatab") {
+            const dateElement = $(element)
+              .closest(".entry")
+              .find(config.selectors.date);
+            rawDate = dateElement.text().trim();
+          } else {
+            const article = $(element).closest("article");
+            const dateElement = article.find(config.selectors.date);
+            rawDate = dateElement.attr("datetime") || dateElement.text().trim();
+          }
+
+          if (rawDate) {
+            date = this.formatDate(rawDate);
+          }
+        }
+
+        console.log(date);
         if (name) {
           results.push({
             name,
-            version,
+            date,
             repack: config.name,
             url:
               config.name.toLowerCase() === "steamrip"
