@@ -101,13 +101,13 @@ const searchController = {
     }
   },
 
-  async search(req: Request, res: Response) {
+  async search(req: Request, res: Response): Promise<void> {
     try {
       const searchTerm = req.query.q as string;
       const repacks = ((req.query.repacks as string) || "steamrip").split(",");
 
       if (!searchTerm) {
-        return res
+        res
           .status(400)
           .json({ success: false, message: "Search term is required" });
       }
@@ -117,7 +117,7 @@ const searchController = {
       );
 
       if (validRepacks.length === 0) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "No valid repack sources provided",
         });
@@ -145,7 +145,7 @@ const searchController = {
         })
         .flat();
 
-      return res.json({
+      res.json({
         success: true,
         query: searchTerm,
         sources: validRepacks,
@@ -153,7 +153,7 @@ const searchController = {
       });
     } catch (error) {
       console.error("Error in search controller:", error);
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: "Internal server error",
         error: error instanceof Error ? error.message : "Unknown error",
