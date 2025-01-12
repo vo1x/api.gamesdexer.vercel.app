@@ -26,4 +26,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/", routes);
 
-export default app;
+const PORT = 3000;
+
+app.listen(PORT, () => {
+  console.log("Server running on port: ", PORT);
+});
