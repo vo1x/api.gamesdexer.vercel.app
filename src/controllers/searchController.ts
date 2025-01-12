@@ -1,117 +1,24 @@
 import * as cheerio from "cheerio";
 import { Request, Response } from "express";
 
-interface ISearchResult {
-  name: string;
-  date: string | undefined;
-  repack: string;
-  url?: string;
-  source: string;
-}
+import { ISearchResult, ScraperConfig } from "../interfaces/interfaces";
+import { SCRAPERS } from "../config/scrapers";
 
-interface ScraperConfig {
-  name: string;
-  url: string;
-  selectors: {
-    container: string;
-    title: string;
-    date?: string;
-  };
-}
-
-const SCRAPERS: Record<string, ScraperConfig> = {
-  steamrip: {
-    name: "SteamRIP",
-    url: "https://steamrip.com",
-
-    selectors: {
-      container: ".post-element",
-      title: ".the-post-title",
-    },
-  },
-  fitgirl: {
-    name: "FitGirl",
-    url: "https://fitgirl-repacks.site",
-    selectors: {
-      container: ".entry-title",
-      title: "a",
-      date: ".entry-meta .entry-date time",
-    },
-  },
-  dodi: {
-    name: "DODI",
-    url: "https://game-repack.site",
-    selectors: {
-      container: ".entry-title",
-      title: "a",
-      date: "time.entry-date.published",
-    },
-  },
-  xatab: {
-    name: "xatab",
-    url: "https://byxatab.com",
-    selectors: {
-      container: ".entry__title",
-      title: "a",
-      date: ".entry__info-categories",
-    },
-  },
-};
+import { formatDate } from "../utils/formatDate";
+import { fetchHtml } from "../utils/fetchHtml";
 
 const searchController = {
-  formatDate(dateStr: string): string {
-    try {
-      const xatabFormat = /^\d{2}-\d{2}-\d{4}, \d{2}:\d{2}$/;
-
-      if (xatabFormat.test(dateStr)) {
-        const [datePart] = dateStr.split(", ");
-        const [day, month, year] = datePart.split("-");
-        dateStr = `${year}-${month}-${day}`;
-      }
-
-      const date = new Date(dateStr);
-
-      if (isNaN(date.getTime())) {
-        return dateStr;
-      }
-
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return dateStr;
-    }
-  },
-
   async scrapeWebsite(
     searchTerm: string,
     config: ScraperConfig
   ): Promise<ISearchResult[]> {
     try {
-      console.log(`${config.url}/?s=${encodeURIComponent(searchTerm)}`);
       const scrapeUrl =
         config.name === "xatab"
           ? `${config.url}/search/${encodeURIComponent(searchTerm)}`
           : `${config.url}/?s=${encodeURIComponent(searchTerm)}`;
-      const response = await fetch(scrapeUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-          "Accept-Language": "en-US,en;q=0.9",
-          Accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-          Connection: "keep-alive",
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const html = await response.text();
+      const html = await fetchHtml(scrapeUrl);
       const $ = cheerio.load(html);
       const results: ISearchResult[] = [];
 
@@ -135,11 +42,10 @@ const searchController = {
           }
 
           if (rawDate) {
-            date = this.formatDate(rawDate);
+            date = formatDate(rawDate);
           }
         }
 
-        console.log(date);
         if (name) {
           results.push({
             name,
